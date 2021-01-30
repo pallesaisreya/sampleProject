@@ -17,6 +17,17 @@ import com.sample.app.demo.model.Type;
 
 public class FHIRUtil {
 
+	private static final String MEMBER_NUMBER = "Member Number";
+	private static final String PLAN_NAME = "408F";
+	private static final String GROUP_NAME = "S11111";
+	private static final String GROUP_NAME_LLC = "GROUP NAME LLC";
+	private static final String STATEASO = "STATEASO";
+	private static final String ACTIVE = "active";
+	private static final String COVERAGE = "Coverage";
+	private static final String COVERAGE_CLASS = "http://terminology.hl7.org/CodeSystem/coverage-class";
+	private static final String HEALTH_INSURANCE_PLAN_POLICY = "health insurance plan policy";
+	private static final String HIP = "HIP";
+	private static final String ACT_CODE = "http://terminology.hl7.org/CodeSystem/v3-ActCode";
 	private static final String ORGANIZATION = "Organization";
 	private static final String BCBSNC = "BCBSNC";
 	private static final String ORGANIZATION_IDENTIFIER = "Organization Identifier";
@@ -28,26 +39,16 @@ public class FHIRUtil {
 	private static final String IDENTIFIER_SYSTEM = "https://fhir.primetherapeutics.com/data/sid/BCBSNC";
 
 	public FHIR constructFHIR() {
-
-	
 	String memberId="";
 	List<Identifier> identifiers= new ArrayList<>();		
 	Identifier identifier=new Identifier();
 	identifier.setValue(memberId);
 	identifier.setSystem(IDENTIFIER_SYSTEM);
-	Type type=new Type();
-	List<Code> codes = new ArrayList<Code>();
-	Code code = new Code();
-	code.setSystem(CODE_SYSTEM);
-	code.setCode(MB);
-	code.setDisplay("Member Number");
-	codes.add(code);
-	type.setCoding(codes);
-	identifier.setType(type);
+	Type identifierType = constructType(CODE_SYSTEM, MB, MEMBER_NUMBER);
+	identifier.setType(identifierType);
 	identifiers.add(identifier);
-	
-	String line1="";
-	String line2="";
+	String line1="";//address line1
+	String line2="";//address line 2
 	String postalCode="";	
 	String birthDate="";
 	String gender="";
@@ -60,40 +61,56 @@ public class FHIRUtil {
 	FHIR fhir= new FHIR();
 	Patient patient= constructPatient(identifiers, line1, line2, postalCode, birthDate, gender, city, uniqueId, family, firstName, text);
 	fhir.setPatient(patient);
-	
 	String start="";
 	String end="";
-	Coverage coverage= new Coverage();
-	coverage.setIdentifier(identifiers);
-	Period period= new Period();
-	period.setStart(start);
-	period.setEnd(end);
-	coverage.setPeriod(period);
-	Payor payor = new Payor();
-	List<Identifier> payorIdentifiers= new ArrayList<>();		
-	Identifier payorIdentifier=new Identifier();
-	payorIdentifier.setValue(BCBSNC);
-	payorIdentifier.setSystem(IDENTIFIER_SYSTEM);
-	Type payorIdentifierType = constructType(CODE_SYSTEM,XX,ORGANIZATION_IDENTIFIER);
-	payorIdentifier.setType(payorIdentifierType);
-	payorIdentifiers.add(identifier);
-	payor.setType(ORGANIZATION);
-	Beneficiary beneficiary= new Beneficiary();
-	beneficiary.setReference(uniqueId);
-	beneficiary.setType(PATIENT);
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-		
-		
-	return null;
+	Coverage coverage = constructCoverage(identifiers, identifier, uniqueId, start, end);
+	fhir.setCoverage(coverage);	
+	return fhir;
+	}
+
+	private Coverage constructCoverage(List<Identifier> identifiers, Identifier identifier, String uniqueId,
+			String start, String end) {
+		Coverage coverage= new Coverage();
+		coverage.setIdentifier(identifiers);
+		Period period= new Period();
+		period.setStart(start);
+		period.setEnd(end);
+		coverage.setPeriod(period);
+		Payor payor = new Payor();
+		List<Identifier> payorIdentifiers= new ArrayList<>();		
+		Identifier payorIdentifier=new Identifier();
+		payorIdentifier.setValue(BCBSNC);
+		payorIdentifier.setSystem(IDENTIFIER_SYSTEM);
+		Type payorIdentifierType = constructType(CODE_SYSTEM,XX,ORGANIZATION_IDENTIFIER);
+		payorIdentifier.setType(payorIdentifierType);
+		payorIdentifiers.add(identifier);
+		payor.setType(ORGANIZATION);
+		Beneficiary beneficiary= new Beneficiary();
+		beneficiary.setReference(uniqueId);
+		beneficiary.setType(PATIENT);
+		Type hipCodeType = constructType(ACT_CODE, HIP, HEALTH_INSURANCE_PLAN_POLICY);
+		coverage.setType(hipCodeType);
+		List<Identifier> classes= new ArrayList<>();
+		Identifier groupIdentifier = new Identifier();
+		groupIdentifier.setName(GROUP_NAME);
+		groupIdentifier.setValue(GROUP_NAME_LLC);
+		Type groupType=constructType(COVERAGE_CLASS, "group", "Group");
+		groupIdentifier.setType(groupType);
+		classes.add(groupIdentifier);
+		Identifier planIdentifier = new Identifier();
+		planIdentifier.setValue(PLAN_NAME);
+		Type planType=constructType(COVERAGE_CLASS, "plan", "Plan");
+		planIdentifier.setType(planType);
+		classes.add(planIdentifier);
+		Identifier subClassIdentifier = new Identifier();
+		subClassIdentifier.setValue(STATEASO);
+		Type subclassType=constructType(COVERAGE_CLASS, "subclass", "Subclass");
+		subClassIdentifier.setType(subclassType);
+		classes.add(subClassIdentifier);
+		coverage.setResourseType(COVERAGE);
+		coverage.setId(uniqueId);
+		coverage.setStatus(ACTIVE);
+		return coverage;
 	}
 
 	private Type constructType(String system,String code, String display) {
